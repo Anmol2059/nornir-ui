@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Inventory Configuration</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+      $(document).ready(function () {
+        $("#configForm").submit(function (event) {
+          event.preventDefault();
+
+          // Fetch the name values
+          var groupName = $("#groupName").val();
+          var hostName = $("#hostName").val();
+
+          // Build the data object for groups.yaml
+          var groupsData = {
+            [groupName]: {
+              platform: "cisco_ios",
+              username: $("#groupUsername").val(),
+              password: $("#groupPassword").val(),
+              port: $("#groupPort").val(),
+              data: {
+                file_name: $("#groupFileName").val(),
+              },
+              connection_options: {
+                netmiko: {
+                  extras: {
+                    secret: $("#groupPassword").val(),
+                  },
+                },
+              },
+            },
+          };
+
+          // Build the data object for hosts.yaml
+          var hostsData = {
+            [hostName]: {
+              hostname: $("#hostHostname").val(),
+              port: $("#hostPort").val(),
+              groups: [groupName],
+              data: {
+                dns1: $("#hostDns1").val(),
+                dns2: $("#hostDns2").val(),
+                role: $("#hostRole").val(),
+                snmp_id: $("#hostSnmpId").val(),
+              },
+            },
+          };
+
+          // Perform AJAX requests to save the YAML files
+          $.ajax({
+            url: "/save_groups_yaml",
+            type: "POST",
+            data: { groupsData: JSON.stringify(groupsData) },
+            success: function () {
+              console.log("groups.yaml saved");
+            },
+          });
+
+          $.ajax({
+            url: "/save_hosts_yaml",
+            type: "POST",
+            data: { hostsData: JSON.stringify(hostsData) },
+            success: function () {
+              console.log("hosts.yaml saved");
+            },
+          });
+
+          // Reset the form
+          $("#configForm")[0].reset();
+        });
+
+        $("#getNornirDataBtn").click(function () {
+          $.ajax({
+            url: "/get_nornir_data",
+            type: "GET",
+            success: function (data) {
+              var nornirData = JSON.parse(data.nornir_data);
+
+              // Update the <div> element with the Nornir data
+              $("#nornirData").text(JSON.stringify(nornirData, null, 2));
+            },
+          });
+        });
+
+        $("#viewHostsBtn").click(function () {
+          $.ajax({
+            url: "/get_hosts_yaml",
+            type: "GET",
+            success: function (data) {
+              var hostsYamlData = data.hosts_yaml;
+
+              // Update the <div> element with the hosts YAML data
+              $("#hostsYamlData").text(hostsYamlData);
+            },
+          });
+        });
+
+        $("#viewGroupsBtn").click(function () {
+          $.ajax({
+            url: "/get_groups_yaml",
+            type: "GET",
+            success: function (data) {
+              var groupsYamlData = data.groups_yaml;
+
+              // Update the <div> element with the groups YAML data
+              $("#groupsYamlData").text(groupsYamlData);
+            },
+          });
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <h1 style="text-align: center; padding: 10px;">Inventory Configuration</h1>
+    <form id="configForm">
+      <!-- Group Configuration -->
+      <fieldset>
+        <legend>Group Configuration</legend>
+        <label for="groupName">Group Name:</label>
+        <input type="text" id="groupName" name="groupName" required /><br />
+        <label for="groupUsername">Username:</label>
+        <input type="text" id="groupUsername" name="groupUsername" required /><br />
+        <label for="groupPassword">Password:</label>
+        <input type="password" id="groupPassword" name="groupPassword" required /><br />
+        <label for="groupPort">Port:</label>
+        <input type="number" id="groupPort" name="groupPort" required /><br />
+        <label for="groupFileName">File Name:</label>
+        <input type="text" id="groupFileName" name="groupFileName" required />
+      </fieldset>
+
+      <!-- Host Configuration -->
+      <fieldset>
+        <legend>Host Configuration</legend>
+        <label for="hostName">Host Name:</label>
+        <input type="text" id="hostName" name="hostName" required /><br />
+        <label for="hostHostname">Host IP:</label>
+        <input type="text" id="hostHostname" name="hostHostname" required /><br />
+        <label for="hostPort">Port:</label>
+        <input type="number" id="hostPort" name="hostPort" required /><br />
+        <label for="hostDns1">DNS 1:</label>
+        <input type="text" id="hostDns1" name="hostDns1" required /><br />
+        <label for="hostDns2">DNS 2:</label>
+        <input type="text" id="hostDns2" name="hostDns2" required /><br />
+        <label for="hostRole">Role:</label>
+        <input type="text" id="hostRole" name="hostRole" required /><br />
+        <label for="hostSnmpId">SNMP ID:</label>
+        <input type="text" id="hostSnmpId" name="hostSnmpId" required />
+      </fieldset>
+
+      <button type="submit">Save Configuration</button>
+    </form>
+
+    <button id="getNornirDataBtn">Get Nornir Data</button>
+    <div id="nornirData"> You may Click Get Nornir Data after some time, it takes few seconds to fetch.</div>
+
+    <button id="viewHostsBtn">View Hosts YAML</button>
+    <div id="hostsYamlData"></div>
+
+    <button id="viewGroupsBtn">View Groups YAML</button>
+    <div id="groupsYamlData"></div>
+  </body>
+</html>
